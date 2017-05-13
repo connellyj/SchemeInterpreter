@@ -27,6 +27,10 @@ Value *car(Value *list);
 // that this is a legitimate operation.
 Value *cdr(Value *list);
 
+void setCdr(Value *list, Value *newCdr);
+
+void setCar(Value *list, Value *newCar);
+
 // Utility to check if pointing to a NULL_TYPE value. Use assertions to make sure
 // that this is a legitimate operation.
 bool isNull(Value *value);

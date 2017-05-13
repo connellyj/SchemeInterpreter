@@ -1,10 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
-#include "tokenizer.h"
 #include "value.h"
 #include "linkedlist.h"
-#include "parser.h"
 #include "talloc.h"
 
 struct Stack {
@@ -89,6 +87,7 @@ Value *parse(Value *tokens) {
 // Prints the tree to the screen in a readable fashion,
 // uses parentheses to indicate subtrees.
 void printTree(Value *tree) {
+    assert(tree->type == CONS_TYPE);
     Value *cur = tree;
     while(!isNull(cur)) {
         display(car(cur));
