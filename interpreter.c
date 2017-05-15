@@ -16,6 +16,7 @@ void evalError(int errorCode) {
     else if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
     else if(errorCode == 6) printf("\'let\' requires 2 parameters");
     else if(errorCode == 7) printf("Evaluation error");
+    else if(errorCode == 8) printf("\'quote\' only takes one parameter");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -91,6 +92,12 @@ Value *evalLet(Value *args, Frame *frame) {
     return eval(expr, newFrame);
 }
 
+// Evaluates a quote expression
+Value *evalQuote(Value *args) {
+    if(length(args) != 1) evalError(8);
+    return args;
+}
+
 // Looks up the given symbol in the given frame and its parents
 Value *lookupSymbol(Value *symbol, Frame *frame) {
     Frame *curFrame = frame;
@@ -119,6 +126,7 @@ Value *eval(Value *expr, Frame *frame) {
         Value *args = cdr(expr);
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
+        if(!strcmp(first->s, "quote")) return evalQuote(args);
         else evalError(4);
     } else {
         evalError(7);
