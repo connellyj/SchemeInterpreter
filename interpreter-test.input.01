@@ -1,0 +1,8 @@
+2
+2.2
+#t
+"hello"
+(if #f 3 5)
+(let ((x #t) (y #f)) (if y 3 5))
+(let ((x "x") (y "y")) (let ((z #f)) (if z x y)))
+(let ((x (if #t 4 6))) x)

@@ -7,26 +7,33 @@
 #include "talloc.h"
 #include "interpreter.h"
 
+// Helper function to print error codes and exit the program
 void evalError(int errorCode) {
     if(errorCode == 1) printf("\'if\' requires 3 arguments");
-    if(errorCode == 2) printf("the first argument of \'if\' must evaluate to a boolean");
-    if(errorCode == 3) printf("First token in a list must be a symbol");
-    if(errorCode == 4) printf("Symbol does not exist");
-    if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
+    else if(errorCode == 2) printf("The first argument of \'if\' must evaluate to a boolean");
+    else if(errorCode == 3) printf("First token in a list must be a symbol");
+    else if(errorCode == 4) printf("Symbol does not exist");
+    else if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
+    else if(errorCode == 6) printf("\'let\' requires 2 parameters");
+    else if(errorCode == 7) printf("Evaluation error");
+    else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
 }
 
+// Helper function to get the variables of a binding
 Value *var(Value *binding) {
     assert(binding->type == BINDING_TYPE);
     return binding->b.var;
 }
 
+// Helper function to get the value of a binding
 Value *val(Value *binding) {
     assert(binding->type == BINDING_TYPE);
     return binding->b.val;
 }
 
+// Interprets the given parsed scheme program
 void interpret(Value *tree) {
     assert(tree->type == CONS_TYPE);
     Value *cur = tree;
@@ -39,6 +46,7 @@ void interpret(Value *tree) {
     }
 }
 
+// Evaluates an if expression
 Value *evalIf(Value *args, Frame *frame) {
     if(length(args) != 3) evalError(1);
     Value *cond = car(args);
@@ -50,6 +58,7 @@ Value *evalIf(Value *args, Frame *frame) {
     else return eval(ifFalse, frame);
 }
 
+// Creates a BINDING_TYPE Value node
 Value *makeBinding(Value *var, Value *val) {
     Value *newBinding = (Value *)talloc(sizeof(Value));
     newBinding->type = BINDING_TYPE;
@@ -58,15 +67,21 @@ Value *makeBinding(Value *var, Value *val) {
     return newBinding;
 }
 
+// Evaluates a let expression
 Value *evalLet(Value *args, Frame *frame) {
+    if(args->type != CONS_TYPE) evalError(5);
+    if(length(args) != 2) evalError(6);
     Value *bindings = car(args);
     Value *expr = car(cdr(args));
     Value *curBinding;
     Value *bindingsList = makeNull();
     while(!isNull(bindings)) {
+        if(bindings->type != CONS_TYPE) evalError(5);
         curBinding = car(bindings);
+        if(curBinding->type != CONS_TYPE) evalError(5);
+        if(length(curBinding) != 2) evalError(5);
         Value *var = car(curBinding);
-        Value *val = car(cdr(curBinding));
+        Value *val = eval(car(cdr(curBinding)), frame);
         bindingsList = cons(makeBinding(var, val), bindingsList);
         bindings = cdr(bindings);
     }
@@ -74,27 +89,9 @@ Value *evalLet(Value *args, Frame *frame) {
     newFrame->parent = frame;
     newFrame->bindings = bindingsList;
     return eval(expr, newFrame);
-
-
-    // Value *assignments = car(args);
-    // if(assignments->type != CONS_TYPE) evalError(5);
-    // Value *curBinding = car(assignments);
-    // Frame *newFrame = (Frame *)talloc(sizeof(Frame));
-    // Value *bindings = makeNull();
-    // while(!isNull(curBinding)) {
-    //     if(curBinding->type != CONS_TYPE) evalError(5);
-    //     if(length(curBinding) != 2) evalError(5);
-    //     Value *var = car(curBinding);
-    //     Value *val = car(cdr(curBinding));
-    //     bindings = cons(makeBinding(var, val), bindings);
-    //     assignments = cdr(assignments);
-    //     curBinding = car(assignments);
-    // }
-    // newFrame->bindings = bindings;
-    // newFrame->parent = frame;
-    // return eval(cdr(args), newFrame);
 }
 
+// Looks up the given symbol in the given frame and its parents
 Value *lookupSymbol(Value *symbol, Frame *frame) {
     Frame *curFrame = frame;
     while(curFrame->parent != NULL) {
@@ -109,6 +106,7 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
     return makeNull();
 }
 
+// Evaluates the given scheme expression
 Value *eval(Value *expr, Frame *frame) {
     if(expr->type == INT_TYPE || expr->type == DOUBLE_TYPE ||
         expr->type == BOOL_TYPE || expr->type == STR_TYPE) {
@@ -117,10 +115,13 @@ Value *eval(Value *expr, Frame *frame) {
         return lookupSymbol(expr, frame);
     } else if(expr->type == CONS_TYPE) {
         Value *first = car(expr);
+        if(first->type != SYMBOL_TYPE) evalError(3);
         Value *args = cdr(expr);
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
         else evalError(4);
+    } else {
+        evalError(7);
     }
     return makeNull();
 }

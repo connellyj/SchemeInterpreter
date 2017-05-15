@@ -1,0 +1,13 @@
+(if 
+    (let ((x #t) (y #f) (z 1))
+        (if x y x))
+    (let ((f 1) (g 2) (h "hello"))
+        h)
+    "cheese")
+
+(if
+    (let ((x #t) (y #f) (z 1))
+        (if x x y))
+    (let ((f 1) (g 2) (h "hello"))
+        h)
+    "cheese")
