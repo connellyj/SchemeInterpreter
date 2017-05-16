@@ -10,7 +10,7 @@
 // Helper function to print error codes and exit the program
 void evalError(int errorCode) {
     if(errorCode == 1) printf("\'if\' requires 3 arguments");
-    else if(errorCode == 2) printf("The first argument of \'if\' must evaluate to a boolean");
+    else if(errorCode == 2) printf("");
     else if(errorCode == 3) printf("First token in a list must be a symbol");
     else if(errorCode == 4) printf("Symbol does not exist");
     else if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
@@ -54,9 +54,8 @@ Value *evalIf(Value *args, Frame *frame) {
     Value *ifTrue = car(cdr(args));
     Value *ifFalse = car(cdr(cdr(args)));
     Value *result = eval(cond, frame);
-    if(result->type != BOOL_TYPE) evalError(2);
-    if(result->i) return eval(ifTrue, frame);
-    else return eval(ifFalse, frame);
+    if(result->type != BOOL_TYPE || !(result->i)) return eval(ifFalse, frame);
+    else return eval(ifTrue, frame);
 }
 
 // Creates a BINDING_TYPE Value node
