@@ -94,7 +94,7 @@ Value *evalLet(Value *args, Frame *frame) {
 // Evaluates a quote expression
 Value *evalQuote(Value *args) {
     if(length(args) != 1) evalError(8);
-    return args;
+    return car(args);
 }
 
 // Looks up the given symbol in the given frame and its parents

@@ -72,7 +72,7 @@ Value *cons(Value *car, Value *cdr) {
 
 // Helper function to display a list of value nodes
 void displayList(Value *list, bool addSpace) {
-	if(list->type != CONS_TYPE && list->type != NULL_TYPE) {
+	if(list->type != CONS_TYPE) {
 		if(list->type == INT_TYPE) printf("%i", list->i);
     	else if (list->type == DOUBLE_TYPE) printf("%f", list->d);
     	else if (list->type == STR_TYPE || list->type == OPEN_TYPE ||
@@ -83,6 +83,7 @@ void displayList(Value *list, bool addSpace) {
         	if(list->i) printf("#t");
         	else printf("#f");
     	}
+        else if(list->type == NULL_TYPE) printf("()");
     	if(addSpace) printf(" ");
 	}
     else if (list->type == CONS_TYPE) {
@@ -94,7 +95,7 @@ void displayList(Value *list, bool addSpace) {
             if(space) printf(") ");
             else printf(")");
         }
-        displayList(cdr(list), true);
+        if(cdr(list)->type != NULL_TYPE) displayList(cdr(list), true);
     }
 }
 

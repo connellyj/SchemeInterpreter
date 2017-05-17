@@ -1,2 +1,4 @@
 (quote (a b c))
 (quote (a b (quote q z) (if hello)))
+(quote 1)
+(quote ())
