@@ -120,6 +120,10 @@ bool parseNumber(char start, char *end, double *num) {
     double curNum;
     double total;
     if(start == '.') {
+        if(!isNumber(curChar)) {
+            printf("\'.\' is not a valid token\n");
+            texit(10);
+        }
         total = 0.0f;
         decimal = true;
         mult = 1.0f;
