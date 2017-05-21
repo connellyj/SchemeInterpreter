@@ -31,6 +31,16 @@ void setCdr(Value *list, Value *newCdr);
 
 void setCar(Value *list, Value *newCar);
 
+Value *var(Value *binding);
+
+Value *val(Value *binding);
+
+Value *makeBinding(Value *var, Value *val);
+
+Value *makeVoid();
+
+Value *makeClosure(Value *paramNames, Value *functionCode, struct Frame *frame);
+
 // Utility to check if pointing to a NULL_TYPE value. Use assertions to make sure
 // that this is a legitimate operation.
 bool isNull(Value *value);
