@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <string.h>
+#include <stdarg.h>
 #include "value.h"
 #include "linkedlist.h"
 #include "talloc.h"
@@ -10,20 +11,20 @@
 // Helper function to print error codes and exit the program
 void evalError(int errorCode) {
     if(errorCode == 1) printf("\'if\' requires 3 arguments");
-    else if(errorCode == 2) printf("");
-    else if(errorCode == 3) printf("First token in a list must be a symbol");
-    else if(errorCode == 4) printf("Symbol does not exist");
+    else if(errorCode == 2) printf("\'let\' can only assign expressions to symbols");
+    else if(errorCode == 3) printf("Function name must be a symbol");
+    else if(errorCode == 4) printf("Symbol undefined");
     else if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
-    else if(errorCode == 6) printf("\'let\' requires 2 parameters");
+    else if(errorCode == 6) printf("\'let\' requires 2 arguments");
     else if(errorCode == 7) printf("Evaluation error");
-    else if(errorCode == 8) printf("\'quote\' only takes one parameter");
-    else if(errorCode == 9) printf("\'define\' only takes two parameters");
-    else if(errorCode == 10) printf("The first parameter of \'define\' must be a valid variable name");
-    else if(errorCode == 11) printf("\'lambda\' only takes two parameters");
-    else if(errorCode == 12) printf("The first parameter of \'lambda\' must be a list of parameters");
-    else if(errorCode == 13) printf("Undefined function");
-    else if(errorCode == 14) printf("Not enough parameters provided");
-    else if(errorCode == 15) printf("Too many parameters provided");
+    else if(errorCode == 8) printf("\'quote\' only takes one argument");
+    else if(errorCode == 9) printf("\'define\' only takes two arguments");
+    else if(errorCode == 10) printf("\'define\' can only assign expressions to symbols");
+    else if(errorCode == 11) printf("\'lambda\' only takes two arguments");
+    else if(errorCode == 12) printf("The first argument of \'lambda\' must be a list of arguments");
+    else if(errorCode == 13) printf("");
+    else if(errorCode == 14) printf("Not enough arguments provided");
+    else if(errorCode == 15) printf("Too many arguments provided");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -50,6 +51,7 @@ void interpret(Value *tree) {
 Value *evalIf(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    assert(args->type == CONS_TYPE);
     if(length(args) != 3) evalError(1);
     Value *cond = car(args);
     Value *ifTrue = car(cdr(args));
@@ -63,7 +65,7 @@ Value *evalIf(Value *args, Frame *frame) {
 Value *evalLet(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
-    if(args->type != CONS_TYPE) evalError(5);
+    assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(6);
     Value *bindings = car(args);
     Value *expr = car(cdr(args));
@@ -75,6 +77,7 @@ Value *evalLet(Value *args, Frame *frame) {
         if(curBinding->type != CONS_TYPE) evalError(5);
         if(length(curBinding) != 2) evalError(5);
         Value *var = car(curBinding);
+        if(var->type != SYMBOL_TYPE) evalError(2);
         Value *val = eval(car(cdr(curBinding)), frame);
         bindingsList = cons(makeBinding(var, val), bindingsList);
         bindings = cdr(bindings);
@@ -88,6 +91,7 @@ Value *evalLet(Value *args, Frame *frame) {
 // Evaluates a quote expression
 Value *evalQuote(Value *args) {
     assert(args);
+    assert(args->type == CONS_TYPE);
     if(length(args) != 1) evalError(8);
     return car(args);
 }
@@ -96,6 +100,7 @@ Value *evalQuote(Value *args) {
 Value *evalDefine(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(9);
     Value *var = car(args);
     if(var->type != SYMBOL_TYPE) evalError(10);
@@ -105,9 +110,11 @@ Value *evalDefine(Value *args, Frame *frame) {
     return makeVoid();
 }
 
+// Evaluates a lambda expression
 Value *evalLambda(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(11);
     Value *params = car(args);
     if(params->type != CONS_TYPE) evalError(12);
@@ -117,6 +124,9 @@ Value *evalLambda(Value *args, Frame *frame) {
 
 // Looks up the given symbol in the given frame and its parents
 Value *lookupSymbol(Value *symbol, Frame *frame) {
+    assert(symbol);
+    assert(frame);
+    assert(symbol->type == SYMBOL_TYPE);
     Frame *curFrame = frame;
     while(curFrame != NULL) {
         Value *curBinding = curFrame->bindings;
@@ -132,7 +142,10 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
 
 // Executes the given function using the given arguments
 Value *apply(Value *function, Value *args) {
-    if(function->type != CLOSURE_TYPE) evalError(13);
+    assert(function);
+    assert(args);
+    assert(args->type == CONS_TYPE);
+    assert(function->type == CLOSURE_TYPE);
     Frame *frame = (Frame *)talloc(sizeof(Frame));
     frame = function->cl.frame;
     Value *values = args;
@@ -152,7 +165,11 @@ Value *apply(Value *function, Value *args) {
     return eval(function->cl.functionCode, frame);
 }
 
+// Returns a list of the evaluated args
 Value *evalEach(Value *args, Frame *frame) {
+    assert(args);
+    assert(frame);
+    assert(args->type == CONS_TYPE);
     Value *evaledArgs = makeNull();
     Value *cur = args;
     Value *evaled;
@@ -161,11 +178,13 @@ Value *evalEach(Value *args, Frame *frame) {
         evaledArgs = cons(evaled, evaledArgs);
         cur = cdr(cur);
     }
-    return evaledArgs;
+    return reverse(evaledArgs);
 }
 
 // Evaluates the given scheme expression
 Value *eval(Value *expr, Frame *frame) {
+    assert(expr);
+    assert(frame);
     if(expr->type == INT_TYPE || expr->type == DOUBLE_TYPE ||
         expr->type == BOOL_TYPE || expr->type == STR_TYPE) {
         return expr;

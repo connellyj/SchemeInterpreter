@@ -191,11 +191,13 @@ void display(Value *list) {
 // Helper method to copy a CONS_TYPE Value node
 Value *copyConsValue(Value *val) {
     assert(val);
-    assert(val->type == CONS_TYPE);
+    assert(val->type == CONS_TYPE || isNull(val));
     Value *copy = (Value *)talloc(sizeof(Value));
     copy->type = val->type;
-    setCar(copy, car(val));
-    setCdr(copy, cdr(val));
+    if(!isNull(val)) {
+        setCar(copy, car(val));
+        setCdr(copy, cdr(val));
+    }
     return copy;
 }
 
@@ -204,7 +206,6 @@ Value *reverse(Value *list) {
     assert(list);
     if(isNull(list)) return list;
     assert(list->type == CONS_TYPE);
-
     Value *cur = copyConsValue(list);
     Value *next = copyConsValue(cdr(cur));
     Value *prev;
