@@ -12,12 +12,15 @@ typedef struct Stack Stack;
 
 // Helper function to initialize a stack
 void initStack(Stack *stack) {
+    assert(stack);
     stack->top = (Value *)talloc(sizeof(Value));
     stack->top->type = NULL_TYPE;
 }
 
 // Push the given item onto the given stack
 void push(Stack *stack, Value *item) {
+    assert(stack);
+    assert(item);
     Value *consValue = (Value *)talloc(sizeof(Value));
     consValue->type = CONS_TYPE;
     setCar(consValue, item);
@@ -27,6 +30,7 @@ void push(Stack *stack, Value *item) {
 
 // Pop the next value off of the given stack
 Value *pop(Stack *stack) {
+    assert(stack);
     Value *popped = car(stack->top);
     stack->top = cdr(stack->top);
     return popped;
@@ -34,12 +38,15 @@ Value *pop(Stack *stack) {
 
 // Returns whether or not the given stack is empty
 bool isEmpty(Stack *stack) {
+    assert(stack);
     return isNull(stack->top);
 }
 
 // Takes a list of tokens from a Racket program, and returns a pointer to a
 // parse tree representing that program.
 Value *parse(Value *tokens) {
+    assert(tokens);
+    assert(tokens->type == CONS_TYPE);
     Stack *stack = (Stack *)talloc(sizeof(Stack));
     initStack(stack);
     Value *curToken = tokens;
@@ -87,6 +94,7 @@ Value *parse(Value *tokens) {
 // Prints the tree to the screen in a readable fashion,
 // uses parentheses to indicate subtrees.
 void printTree(Value *tree) {
+    assert(tree);
     assert(tree->type == CONS_TYPE);
     Value *cur = tree;
     while(!isNull(cur)) {

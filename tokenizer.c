@@ -3,6 +3,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <ctype.h>
+#include <assert.h>
 #include "value.h"
 #include "talloc.h"
 #include "linkedlist.h"
@@ -17,6 +18,7 @@ struct SymbolString {
 
 // Initiailzes the given SymbolString with a capacity of 20
 void initSymbolString(SymbolString *symbol) {
+    assert(symbol);
     symbol->capacity = 20;
     symbol->size = 1;
     symbol->str = talloc(symbol->capacity * sizeof(char));
@@ -25,6 +27,7 @@ void initSymbolString(SymbolString *symbol) {
 
 // Doubles the size of the given symbol's string
 void doubleArray(SymbolString *symbol) {
+    assert(symbol);
     symbol->capacity *= 2;
     char *dubClone = talloc(symbol->capacity * sizeof(char));
     strcpy(dubClone, symbol->str);
@@ -33,6 +36,7 @@ void doubleArray(SymbolString *symbol) {
 
 // Adds the given character to the end of the given symbol's string
 void append(SymbolString *symbol, char c) {
+    assert(symbol);
     if (symbol->size == symbol->capacity) {
         doubleArray(symbol);
     }
@@ -44,6 +48,8 @@ void append(SymbolString *symbol, char c) {
 // Helper function to fill in a Value node with the given string
 // Does not assign a type to the Value node
 void makeStringMalloc(Value *val, char *str, int size) {
+    assert(val);
+    assert(str);
     char *p = talloc((size + 1) * sizeof(char));
     strcpy(p, str);
     val->s = p;
@@ -51,30 +57,37 @@ void makeStringMalloc(Value *val, char *str, int size) {
 
 // Helper function to fill in a given Value node with the given integer
 void makeInteger(Value *val, int num) {
+    assert(val);
     val->type = INT_TYPE;
     val->i = num;
 }
 
 // Helper function to fill in a given Value node with the given float
 void makeDouble(Value *val, double num) {
+    assert(val);
     val->type = DOUBLE_TYPE;
     val->d = num;
 }
 
 // Helper function to fill in the given Value node with the given boolean
 void makeBool(Value *val, bool b) {
+    assert(val);
     val->type = BOOL_TYPE;
     val->i = (int)b;
 }
 
 // Helper function to fill in the given Value node with the given symbol
 void makeSymbol(Value *val, char *str) {
+    assert(val);
+    assert(str);
     val->type = SYMBOL_TYPE;
     val->s = str;
 }
 
 // Helper function to fill in the given Value node with the given string
 void makeString(Value *val, char *str) {
+    assert(val);
+    assert(str);
     val->type = STR_TYPE;
     val->s = str;
 }
@@ -114,6 +127,8 @@ bool isBlank(char c) {
 // Fills in num with the parsed number
 // Returns true if the number is an integer, false otherwise
 bool parseNumber(char start, char *end, double *num) {
+    assert(end);
+    assert(num);
     char curChar = fgetc(stdin);
     double mult = 10.0f;
     bool decimal = false;
@@ -131,7 +146,6 @@ bool parseNumber(char start, char *end, double *num) {
     else total = start - '0';
     while(isNumber(curChar)) {
         if(decimal) {
-            // Not a valid Number
             if(curChar == '.') {
                 printf("A number cannot have 2 decimal points in it\n");
                 texit(1);
@@ -164,6 +178,8 @@ bool parseNumber(char start, char *end, double *num) {
 // Fills val with the result from parsing
 // Returns whether or not the number was valid
 bool handleNumber(Value *val, char *end, char start, bool isNegative) {
+    assert(val);
+    assert(end);
     double num;
     bool isInt = parseNumber(start, end, &num);
     if(isNegative) num *= -1.0f;
@@ -179,6 +195,8 @@ bool handleNumber(Value *val, char *end, char start, bool isNegative) {
 // Fills the given Value with the results
 // Returns whether or not the symbol was valid
 bool handleSymbol(Value *val, char *end, char start) {
+    assert(val);
+    assert(end);
     SymbolString symbol;
     initSymbolString(&symbol);
     append(&symbol, start);
@@ -199,6 +217,8 @@ bool handleSymbol(Value *val, char *end, char start) {
 // Fills the given Value with the results
 // Returns whether or not the string was valid
 bool handleString(Value *val, char *end, char start) {
+    assert(val);
+    assert(end);
     SymbolString symbol;
     initSymbolString(&symbol);
     append(&symbol, start);

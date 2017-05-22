@@ -10,7 +10,7 @@ Value *initPointerValue(void *p) {
     Value *pointerValue = (Value *)malloc(sizeof(Value));
     pointerValue->type = PTR_TYPE;
     pointerValue->p = p;
-    
+
     Value *consValue = (Value *)malloc(sizeof(Value));
     consValue->type = CONS_TYPE;
     consValue->c.car = pointerValue;
