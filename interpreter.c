@@ -51,6 +51,7 @@ void interpret(Value *tree) {
 Value *evalIf(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    if(isNull(args)) evalError(1);
     assert(args->type == CONS_TYPE);
     if(length(args) != 3) evalError(1);
     Value *cond = car(args);
@@ -65,6 +66,7 @@ Value *evalIf(Value *args, Frame *frame) {
 Value *evalLet(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    if(isNull(args)) evalError(6);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(6);
     Value *bindings = car(args);
@@ -91,6 +93,7 @@ Value *evalLet(Value *args, Frame *frame) {
 // Evaluates a quote expression
 Value *evalQuote(Value *args) {
     assert(args);
+    if(isNull(args)) evalError(8);
     assert(args->type == CONS_TYPE);
     if(length(args) != 1) evalError(8);
     return car(args);
@@ -100,6 +103,7 @@ Value *evalQuote(Value *args) {
 Value *evalDefine(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    if(isNull(args)) evalError(9);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(9);
     Value *var = car(args);
@@ -114,10 +118,11 @@ Value *evalDefine(Value *args, Frame *frame) {
 Value *evalLambda(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
+    if(isNull(args)) evalError(11);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(11);
     Value *params = car(args);
-    if(params->type != CONS_TYPE) evalError(12);
+    if(params->type != CONS_TYPE && !isNull(params)) evalError(12);
     Value *code = car(cdr(args));
     return makeClosure(params, code, frame);
 }
@@ -144,7 +149,7 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
 Value *apply(Value *function, Value *args) {
     assert(function);
     assert(args);
-    assert(args->type == CONS_TYPE);
+    assert(args->type == CONS_TYPE || isNull(args));
     assert(function->type == CLOSURE_TYPE);
     Frame *frame = (Frame *)talloc(sizeof(Frame));
     frame = function->cl.frame;
@@ -161,7 +166,7 @@ Value *apply(Value *function, Value *args) {
         variables = cdr(variables);
     }
     frame->bindings = bindings;
-    if(!isNull(variables)) evalError(15);
+    if(!isNull(values)) evalError(15);
     return eval(function->cl.functionCode, frame);
 }
 
@@ -169,7 +174,7 @@ Value *apply(Value *function, Value *args) {
 Value *evalEach(Value *args, Frame *frame) {
     assert(args);
     assert(frame);
-    assert(args->type == CONS_TYPE);
+    assert(args->type == CONS_TYPE || isNull(args));
     Value *evaledArgs = makeNull();
     Value *cur = args;
     Value *evaled;
@@ -186,13 +191,14 @@ Value *eval(Value *expr, Frame *frame) {
     assert(expr);
     assert(frame);
     if(expr->type == INT_TYPE || expr->type == DOUBLE_TYPE ||
-        expr->type == BOOL_TYPE || expr->type == STR_TYPE) {
+        expr->type == BOOL_TYPE || expr->type == STR_TYPE ||
+        expr->type == NULL_TYPE) {
         return expr;
     } else if(expr->type == SYMBOL_TYPE) {
         return lookupSymbol(expr, frame);
     } else if(expr->type == CONS_TYPE) {
         Value *first = car(expr);
-        if(first->type != SYMBOL_TYPE) evalError(3);
+        if(first->type != SYMBOL_TYPE && first->type != CONS_TYPE) evalError(3);
         Value *args = cdr(expr);
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);

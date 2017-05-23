@@ -1,0 +1,14 @@
+(define x 3)
+x
+(define eitherTrue
+    (lambda (a b)
+        (if a #t 
+            (if b #t #f))))
+(eitherTrue #t #t)
+(eitherTrue #f #t)
+(eitherTrue #f #f)
+
+(define two
+    (lambda (a b)
+        b))
+(two 1 2)

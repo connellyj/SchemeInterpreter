@@ -1,0 +1,10 @@
+(define test
+    (lambda (a b c)
+        (if a 
+            (lambda () 
+                b)
+            (lambda ()
+                c))))
+
+((test #t 1 2))
+((test #f 1 2))

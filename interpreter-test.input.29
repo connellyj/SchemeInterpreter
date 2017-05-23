@@ -1,0 +1,4 @@
+(define test
+    (lambda (a b)
+        2))
+(test)
