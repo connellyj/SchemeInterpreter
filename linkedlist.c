@@ -152,7 +152,10 @@ void displayNestedList(Value *list) {
         if(space) printf(") ");
         else printf(")");
     }
-    if(space) displayList(cdr(list), false);
+    if(space) {
+        if((cdr(list))->type != CONS_TYPE) printf(". ");
+        displayList(cdr(list), false);
+    }
 }
 
 // Helper function to display a list of value nodes
@@ -183,6 +186,7 @@ void display(Value *list) {
         bool space = !isNull(cdr(list));
         printf("(");
         displayList(car(list), space);
+        if((cdr(list))->type != CONS_TYPE) printf(". ");
         displayList(cdr(list), false);
         printf(") ");
     } else displayList(list, true);

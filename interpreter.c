@@ -17,34 +17,23 @@ void evalError(int errorCode) {
     else if(errorCode == 5) printf("\'let\' requires a list of tuples as the first argument");
     else if(errorCode == 6) printf("\'let\' requires 2 arguments");
     else if(errorCode == 7) printf("Evaluation error");
-    else if(errorCode == 8) printf("\'quote\' only takes one argument");
-    else if(errorCode == 9) printf("\'define\' only takes two arguments");
+    else if(errorCode == 8) printf("\'quote\' requires one argument");
+    else if(errorCode == 9) printf("\'define\' requires two arguments");
     else if(errorCode == 10) printf("\'define\' can only assign expressions to symbols");
-    else if(errorCode == 11) printf("\'lambda\' only takes two arguments");
+    else if(errorCode == 11) printf("\'lambda\' requires two arguments");
     else if(errorCode == 12) printf("The first argument of \'lambda\' must be a list of arguments");
-    else if(errorCode == 13) printf("");
+    else if(errorCode == 13) printf("All arguments to \'+\' must evaluate to numbers");
     else if(errorCode == 14) printf("Not enough arguments provided");
     else if(errorCode == 15) printf("Too many arguments provided");
+    else if(errorCode == 16) printf("\'null?\' requires one argument");
+    else if(errorCode == 17) printf("\'car\' requires one argument");
+    else if(errorCode == 18) printf("\'cdr\' requires one argument");
+    else if(errorCode == 19) printf("\'cons\' requires one argument");
+    else if(errorCode == 20) printf("\'car\' requires a list as an argument");
+    else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
-}
-
-// Interprets the given parsed scheme program
-void interpret(Value *tree) {
-    assert(tree);
-    assert(tree->type == CONS_TYPE);
-    Value *cur = tree;
-    Frame *frame = (Frame *)talloc(sizeof(Frame));
-    frame->parent = NULL;
-    frame->bindings = makeNull();
-    Value *evaled;
-    while(!isNull(cur)) {
-        evaled = eval(car(cur), frame);
-        display(evaled);
-        if(evaled->type != VOID_TYPE) printf("\n");
-        cur = cdr(cur);
-    }
 }
 
 // Evaluates an if expression
@@ -145,12 +134,8 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
     return makeNull();
 }
 
-// Executes the given function using the given arguments
-Value *apply(Value *function, Value *args) {
-    assert(function);
-    assert(args);
-    assert(args->type == CONS_TYPE || isNull(args));
-    assert(function->type == CLOSURE_TYPE);
+// Applys a function that is a closure to the given arguments
+Value *applyClosure(Value *function, Value *args) {
     Frame *frame = (Frame *)talloc(sizeof(Frame));
     frame = function->cl.frame;
     Value *values = args;
@@ -170,6 +155,21 @@ Value *apply(Value *function, Value *args) {
     return eval(function->cl.functionCode, frame);
 }
 
+// Applys a function that is a primitve function to the given arguments
+Value *applyPrimitive(Value *function, Value *args) {
+    return (function->pf)(args);
+}
+
+// Executes the given function using the given arguments
+Value *apply(Value *function, Value *args) {
+    assert(function);
+    assert(args);
+    assert(args->type == CONS_TYPE || isNull(args));
+    assert(function->type == CLOSURE_TYPE || function->type == PRIMITIVE_TYPE);
+    if(function->type == CLOSURE_TYPE) return applyClosure(function, args);
+    else return applyPrimitive(function, args);
+}
+
 // Returns a list of the evaluated args
 Value *evalEach(Value *args, Frame *frame) {
     assert(args);
@@ -184,6 +184,59 @@ Value *evalEach(Value *args, Frame *frame) {
         cur = cdr(cur);
     }
     return reverse(evaledArgs);
+}
+
+// An add function implemented in C rather than Scheme code
+Value *primitiveAdd(Value *args) {
+    Value *result = (Value *)talloc(sizeof(Value));
+    result->type = DOUBLE_TYPE;
+    result->d = 0;
+    if(length(args) == 0) return result;
+    Value *cur = args;
+    while(!isNull(cur)) {
+        if(car(cur)->type == INT_TYPE) result->d += (car(cur))->i;
+        else if(car(cur)->type == DOUBLE_TYPE) result->d += (car(cur))->d;
+        else evalError(13);
+        cur = cdr(cur);
+    }
+    return result;
+}
+
+Value *primitiveIsNull(Value *args) {
+    if(length(args) != 1) evalError(16);
+    Value *boolVal = (Value *)talloc(sizeof(Value));
+    boolVal->type = BOOL_TYPE;
+    boolVal->i = isNull(car(args));
+    return boolVal;
+}
+
+Value *primitiveCar(Value *args) {
+    if(length(args) != 1) evalError(17);
+    if(car(args)->type != CONS_TYPE) evalError(20);
+    return car(car(args));
+}
+
+Value *primitiveCdr(Value *args) {
+    if(length(args) != 1) evalError(18);
+    if(car(args)->type != CONS_TYPE) evalError(21);
+    return cdr(car(args));
+}
+
+Value *primitiveCons(Value *args) {
+    if(length(args) != 2) evalError(19);
+    return cons(car(args), car(cdr(args)));
+}
+
+// Binds the given function to the given name in the given frame
+void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
+    Value *value = (Value *)talloc(sizeof(Value));
+    value->type = PRIMITIVE_TYPE;
+    value->pf = function;
+    Value *symbol = (Value *)talloc(sizeof(Value));
+    symbol->type = SYMBOL_TYPE;
+    symbol->s = name;
+    Value *binding = makeBinding(symbol, value);
+    frame->bindings = cons(binding, frame->bindings);
 }
 
 // Evaluates the given scheme expression
@@ -214,4 +267,26 @@ Value *eval(Value *expr, Frame *frame) {
         evalError(7);
     }
     return makeNull();
+}
+
+// Interprets the given parsed scheme program
+void interpret(Value *tree) {
+    assert(tree);
+    assert(tree->type == CONS_TYPE);
+    Value *cur = tree;
+    Frame *frame = (Frame *)talloc(sizeof(Frame));
+    frame->parent = NULL;
+    frame->bindings = makeNull();
+    bind("+", primitiveAdd, frame);
+    bind("null?", primitiveIsNull, frame);
+    bind("car", primitiveCar, frame);
+    bind("cdr", primitiveCdr, frame);
+    bind("cons", primitiveCons, frame);
+    Value *evaled;
+    while(!isNull(cur)) {
+        evaled = eval(car(cur), frame);
+        display(evaled);
+        if(evaled->type != VOID_TYPE) printf("\n");
+        cur = cdr(cur);
+    }
 }
