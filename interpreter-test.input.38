@@ -1,0 +1,27 @@
+(define our-map
+  (lambda (f lst)
+    (if (null? lst)
+        (quote ())
+        (cons (f (car lst)) (our-map f (cdr lst))))))
+
+(define add-one
+  (lambda (x)
+    (+ x 1)))
+
+(our-map add-one (quote (0 1 2 3)))
+
+(define our-foldl
+  (lambda (f x lst)
+    (if (null? lst)
+        x
+        (our-foldl f (f (car lst) x) (cdr lst)))))
+
+(our-foldl cons (quote ()) (quote (1 2 3)))
+
+(define our-foldr
+  (lambda (f x lst)
+    (if (null? lst)
+        x
+        (f (car lst) (our-foldr f x (cdr lst))))))
+
+(our-foldr cons (quote ()) (quote (1 2 3)))

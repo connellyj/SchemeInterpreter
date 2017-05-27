@@ -28,7 +28,7 @@ void evalError(int errorCode) {
     else if(errorCode == 16) printf("\'null?\' requires one argument");
     else if(errorCode == 17) printf("\'car\' requires one argument");
     else if(errorCode == 18) printf("\'cdr\' requires one argument");
-    else if(errorCode == 19) printf("\'cons\' requires one argument");
+    else if(errorCode == 19) printf("\'cons\' requires two arguments");
     else if(errorCode == 20) printf("\'car\' requires a list as an argument");
     else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
     else printf("Evaluation error");
@@ -372,18 +372,17 @@ void interpret(Value *tree) {
     assert(tree);
     assert(tree->type == CONS_TYPE);
 
-    Value *cur = tree;
+    // binds primitive functions to the top level frame
     Frame *frame = (Frame *)talloc(sizeof(Frame));
     frame->parent = NULL;
     frame->bindings = makeNull();
-
-    // binds primitive functions to the top level frame
     bind("+", primitiveAdd, frame);
     bind("null?", primitiveIsNull, frame);
     bind("car", primitiveCar, frame);
     bind("cdr", primitiveCdr, frame);
     bind("cons", primitiveCons, frame);
 
+    Value *cur = tree;
     Value *evaled;
     while(!isNull(cur)) {
         evaled = eval(car(cur), frame);
