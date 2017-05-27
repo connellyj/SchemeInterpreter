@@ -1,0 +1,6 @@
+(define recurse
+    (lambda (L1 L2)
+        (if (null? L1)
+            L1
+            (recurse (cdr L1) (cdr L2)))))
+(recurse (quote (1 2 3)) (quote (1 2 3 4)))

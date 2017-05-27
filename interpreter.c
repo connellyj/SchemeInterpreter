@@ -8,6 +8,8 @@
 #include "talloc.h"
 #include "interpreter.h"
 
+char *curFunction;
+
 // Helper function to print error codes and exit the program
 void evalError(int errorCode) {
     if(errorCode == 1) printf("\'if\' requires 3 arguments");
@@ -128,16 +130,22 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
             if(!strcmp(symbol->s, var(car(curBinding))->s)) return val(car(curBinding));
             curBinding = cdr(curBinding);
         }
-        curFrame = frame->parent;
+        curFrame = curFrame->parent;
     }
     evalError(4);
     return makeNull();
 }
 
+Frame *copyFrame(Frame *frame) {
+    Frame *newFrame = (Frame *)talloc(sizeof(Frame));
+    newFrame->parent = frame->parent;
+    newFrame->bindings = frame->bindings;
+    return newFrame;
+}
+
 // Applys a function that is a closure to the given arguments
 Value *applyClosure(Value *function, Value *args) {
-    Frame *frame = (Frame *)talloc(sizeof(Frame));
-    frame = function->cl.frame;
+    Frame *frame = copyFrame(function->cl.frame);
     Value *values = args;
     Value *bindings = makeNull();
     Value *variables = function->cl.paramNames;
