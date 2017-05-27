@@ -8,8 +8,6 @@
 #include "talloc.h"
 #include "interpreter.h"
 
-char *curFunction;
-
 // Helper function to print error codes and exit the program
 void evalError(int errorCode) {
     if(errorCode == 1) printf("\'if\' requires 3 arguments");
@@ -39,12 +37,15 @@ void evalError(int errorCode) {
 }
 
 // Evaluates an if expression
+// Causes an evaluation error if there are not two arguments
 Value *evalIf(Value *args, Frame *frame) {
+    // error checks
     assert(args);
     assert(frame);
     if(isNull(args)) evalError(1);
     assert(args->type == CONS_TYPE);
     if(length(args) != 3) evalError(1);
+
     Value *cond = car(args);
     Value *ifTrue = car(cdr(args));
     Value *ifFalse = car(cdr(cdr(args)));
@@ -54,12 +55,17 @@ Value *evalIf(Value *args, Frame *frame) {
 }
 
 // Evaluates a let expression
+// Causes an evaluation error if there's not two arguments,
+//      or if the first parameter is not a list of tuples where
+//      the first value in each tuple is a valid variable name
 Value *evalLet(Value *args, Frame *frame) {
+    // error checking
     assert(args);
     assert(frame);
     if(isNull(args)) evalError(6);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(6);
+
     Value *bindings = car(args);
     Value *expr = car(cdr(args));
     Value *curBinding;
@@ -82,21 +88,28 @@ Value *evalLet(Value *args, Frame *frame) {
 }
 
 // Evaluates a quote expression
+// Causes an evaluation error if there's not one argument
 Value *evalQuote(Value *args) {
+    // error checking
     assert(args);
     if(isNull(args)) evalError(8);
     assert(args->type == CONS_TYPE);
     if(length(args) != 1) evalError(8);
+
     return car(args);
 }
 
 // Evaluates a define expression
+// Causes an evaluation error if there's not two arguments,
+//      or if the first argument is not a valid variable name
 Value *evalDefine(Value *args, Frame *frame) {
+    // error checking
     assert(args);
     assert(frame);
     if(isNull(args)) evalError(9);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(9);
+
     Value *var = car(args);
     if(var->type != SYMBOL_TYPE) evalError(10);
     Value *val = eval(car(cdr(args)), frame);
@@ -106,23 +119,123 @@ Value *evalDefine(Value *args, Frame *frame) {
 }
 
 // Evaluates a lambda expression
+// Causes an evaluation error if there's not two arguments,
+//      or if the second argument is not a list of parameters
 Value *evalLambda(Value *args, Frame *frame) {
+    // error checking
     assert(args);
     assert(frame);
     if(isNull(args)) evalError(11);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(11);
+
     Value *params = car(args);
     if(params->type != CONS_TYPE && !isNull(params)) evalError(12);
     Value *code = car(cdr(args));
     return makeClosure(params, code, frame);
 }
 
+// Evaluates a + expression
+// Causes an evaluation error if any of the arguments are not numbers
+Value *primitiveAdd(Value *args) {
+    // error checking
+    assert(args);
+    assert(args->type == CONS_TYPE || isNull(args));
+
+    Value *result = (Value *)talloc(sizeof(Value));
+    result->type = DOUBLE_TYPE;
+    result->d = 0;
+    if(length(args) == 0) return result;
+    Value *cur = args;
+    while(!isNull(cur)) {
+        if(car(cur)->type == INT_TYPE) result->d += (car(cur))->i;
+        else if(car(cur)->type == DOUBLE_TYPE) result->d += (car(cur))->d;
+        else evalError(13);
+        cur = cdr(cur);
+    }
+    return result;
+}
+
+// Evaluates a null? expression
+// Causes an evaluation error if there's not one argument
+Value *primitiveIsNull(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(16);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 1) evalError(16);
+
+    Value *boolVal = (Value *)talloc(sizeof(Value));
+    boolVal->type = BOOL_TYPE;
+    boolVal->i = isNull(car(args));
+    return boolVal;
+}
+
+// Evaluates a car expression
+// Causes an evaluation error if there's not one argument,
+//      or if the argument is not a list
+Value *primitiveCar(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(17);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 1) evalError(17);
+    if(car(args)->type != CONS_TYPE) evalError(20);
+
+    return car(car(args));
+}
+
+// Evaluates a cdr expression
+// Causes an evaluation error if there's not one argument,
+//      or if the argument is not a list
+Value *primitiveCdr(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(18);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 1) evalError(18);
+    if(car(args)->type != CONS_TYPE) evalError(21);
+
+    return cdr(car(args));
+}
+
+// Evaluates a cons expression
+// Causes an evaluation error if there's not two arguments
+Value *primitiveCons(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(19);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(19);
+
+    return cons(car(args), car(cdr(args)));
+}
+
+// Binds the given function to the given name in the given frame
+void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
+    // error checking
+    assert(name);
+    assert(function);
+    assert(frame);
+
+    Value *value = (Value *)talloc(sizeof(Value));
+    value->type = PRIMITIVE_TYPE;
+    value->pf = function;
+    Value *symbol = (Value *)talloc(sizeof(Value));
+    symbol->type = SYMBOL_TYPE;
+    symbol->s = name;
+    Value *binding = makeBinding(symbol, value);
+    frame->bindings = cons(binding, frame->bindings);
+}
+
 // Looks up the given symbol in the given frame and its parents
+// Throws an evaluation if the symbol doesn't exist
 Value *lookupSymbol(Value *symbol, Frame *frame) {
+    // error checking
     assert(symbol);
     assert(frame);
     assert(symbol->type == SYMBOL_TYPE);
+
     Frame *curFrame = frame;
     while(curFrame != NULL) {
         Value *curBinding = curFrame->bindings;
@@ -136,15 +249,27 @@ Value *lookupSymbol(Value *symbol, Frame *frame) {
     return makeNull();
 }
 
+// Helper function to copy a frame completely (deep clone)
 Frame *copyFrame(Frame *frame) {
+    // error checking
+    assert(frame);
+
     Frame *newFrame = (Frame *)talloc(sizeof(Frame));
     newFrame->parent = frame->parent;
     newFrame->bindings = frame->bindings;
     return newFrame;
 }
 
-// Applys a function that is a closure to the given arguments
+// Helper function that applies a closure to the given arguments
+// Causes an evaluation error if there are not enough or too many
+//      arguments for the given function
 Value *applyClosure(Value *function, Value *args) {
+    // error checking
+    assert(function);
+    assert(args);
+    assert(function->type == CLOSURE_TYPE);
+    assert(args->type == CONS_TYPE || isNull(args));
+
     Frame *frame = copyFrame(function->cl.frame);
     Value *values = args;
     Value *bindings = makeNull();
@@ -165,24 +290,34 @@ Value *applyClosure(Value *function, Value *args) {
 
 // Applys a function that is a primitve function to the given arguments
 Value *applyPrimitive(Value *function, Value *args) {
+    // error checking
+    assert(function);
+    assert(args);
+    assert(function->type == PRIMITIVE_TYPE);
+    assert(args->type == CONS_TYPE || isNull(args));
+
     return (function->pf)(args);
 }
 
 // Executes the given function using the given arguments
 Value *apply(Value *function, Value *args) {
+    // error checking
     assert(function);
     assert(args);
     assert(args->type == CONS_TYPE || isNull(args));
     assert(function->type == CLOSURE_TYPE || function->type == PRIMITIVE_TYPE);
+
     if(function->type == CLOSURE_TYPE) return applyClosure(function, args);
     else return applyPrimitive(function, args);
 }
 
-// Returns a list of the evaluated args
+// Returns a list of each argument evaluated
 Value *evalEach(Value *args, Frame *frame) {
+    // error checking
     assert(args);
     assert(frame);
     assert(args->type == CONS_TYPE || isNull(args));
+
     Value *evaledArgs = makeNull();
     Value *cur = args;
     Value *evaled;
@@ -194,63 +329,14 @@ Value *evalEach(Value *args, Frame *frame) {
     return reverse(evaledArgs);
 }
 
-// An add function implemented in C rather than Scheme code
-Value *primitiveAdd(Value *args) {
-    Value *result = (Value *)talloc(sizeof(Value));
-    result->type = DOUBLE_TYPE;
-    result->d = 0;
-    if(length(args) == 0) return result;
-    Value *cur = args;
-    while(!isNull(cur)) {
-        if(car(cur)->type == INT_TYPE) result->d += (car(cur))->i;
-        else if(car(cur)->type == DOUBLE_TYPE) result->d += (car(cur))->d;
-        else evalError(13);
-        cur = cdr(cur);
-    }
-    return result;
-}
-
-Value *primitiveIsNull(Value *args) {
-    if(length(args) != 1) evalError(16);
-    Value *boolVal = (Value *)talloc(sizeof(Value));
-    boolVal->type = BOOL_TYPE;
-    boolVal->i = isNull(car(args));
-    return boolVal;
-}
-
-Value *primitiveCar(Value *args) {
-    if(length(args) != 1) evalError(17);
-    if(car(args)->type != CONS_TYPE) evalError(20);
-    return car(car(args));
-}
-
-Value *primitiveCdr(Value *args) {
-    if(length(args) != 1) evalError(18);
-    if(car(args)->type != CONS_TYPE) evalError(21);
-    return cdr(car(args));
-}
-
-Value *primitiveCons(Value *args) {
-    if(length(args) != 2) evalError(19);
-    return cons(car(args), car(cdr(args)));
-}
-
-// Binds the given function to the given name in the given frame
-void bind(char *name, Value *(*function)(struct Value *), Frame *frame) {
-    Value *value = (Value *)talloc(sizeof(Value));
-    value->type = PRIMITIVE_TYPE;
-    value->pf = function;
-    Value *symbol = (Value *)talloc(sizeof(Value));
-    symbol->type = SYMBOL_TYPE;
-    symbol->s = name;
-    Value *binding = makeBinding(symbol, value);
-    frame->bindings = cons(binding, frame->bindings);
-}
-
 // Evaluates the given scheme expression
+// Throws an evaluation error if an invalid function is called,
+//      or if an unexpected error occurs
 Value *eval(Value *expr, Frame *frame) {
+    // error checking
     assert(expr);
     assert(frame);
+
     if(expr->type == INT_TYPE || expr->type == DOUBLE_TYPE ||
         expr->type == BOOL_TYPE || expr->type == STR_TYPE ||
         expr->type == NULL_TYPE) {
@@ -261,11 +347,14 @@ Value *eval(Value *expr, Frame *frame) {
         Value *first = car(expr);
         if(first->type != SYMBOL_TYPE && first->type != CONS_TYPE) evalError(3);
         Value *args = cdr(expr);
+
+        // special forms
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
         if(!strcmp(first->s, "quote")) return evalQuote(args);
         if(!strcmp(first->s, "define")) return evalDefine(args, frame);
         if(!strcmp(first->s, "lambda")) return evalLambda(args, frame);
+
         else {
             Value *evaledOperator = eval(first, frame);
             Value *evaledArgs = evalEach(args, frame);
@@ -279,17 +368,22 @@ Value *eval(Value *expr, Frame *frame) {
 
 // Interprets the given parsed scheme program
 void interpret(Value *tree) {
+    // error checking
     assert(tree);
     assert(tree->type == CONS_TYPE);
+
     Value *cur = tree;
     Frame *frame = (Frame *)talloc(sizeof(Frame));
     frame->parent = NULL;
     frame->bindings = makeNull();
+
+    // binds primitive functions to the top level frame
     bind("+", primitiveAdd, frame);
     bind("null?", primitiveIsNull, frame);
     bind("car", primitiveCar, frame);
     bind("cdr", primitiveCdr, frame);
     bind("cons", primitiveCons, frame);
+
     Value *evaled;
     while(!isNull(cur)) {
         evaled = eval(car(cur), frame);
