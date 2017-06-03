@@ -197,8 +197,6 @@ Value *evalDefine(Value *args, Frame *frame) {
 //      its value to the given new value
 // Throws an evaluation if the symbol doesn't exist
 void changeSymbol(Value *symbol, Value *value, Frame *frame) {
-    display(symbol);
-    printf("\n");
     // error checking
     assert(symbol);
     assert(frame);
@@ -207,8 +205,6 @@ void changeSymbol(Value *symbol, Value *value, Frame *frame) {
     Frame *curFrame = frame;
     while(curFrame != NULL) {
         Value *curBinding = curFrame->bindings;
-        display(curBinding);
-        printf("\n");
         while(!isNull(curBinding)) {
             if(!strcmp(symbol->s, var(car(curBinding))->s)) {
                 car(curBinding)->b.val = value;
