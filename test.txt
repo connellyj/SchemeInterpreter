@@ -1,0 +1,26 @@
+(let ((x 7) (y 3)) y)
+(let* ((x 7) (y x)) y)
+(define summ
+    (lambda (x)
+        (if (zero? x)
+            0
+            (+ x 1 (summ (- x 1))))))
+(summ 3)
+(letrec ((sum (lambda (x)
+                (if (zero? x)
+                    0
+                    (+ x (sum (- x 1)))))))
+        (sum 5))
+(define state #f)
+state
+(define setter
+    (lambda ()
+        (set! state #t)))
+(setter)
+state
+(define b
+    (lambda ()
+        (let ((a 2))
+            (begin
+                (set! a 3)
+                a))))

@@ -32,7 +32,8 @@ void evalError(int errorCode) {
     else if(errorCode == 20) printf("\'car\' requires a list as an argument");
     else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
     else if(errorCode == 22) printf("\'zero?\' requires one argument");
-    else if(errorCode == 23) printf("\'zero\' requires a number as an argument");
+    else if(errorCode == 23) printf("\'zero?\' requires a number as an argument");
+    else if(errorCode == 23) printf("\'begin\' requires at least one argument");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -250,6 +251,21 @@ Value *evalLambda(Value *args, Frame *frame) {
     if(params->type != CONS_TYPE && !isNull(params)) evalError(12);
     Value *code = car(cdr(args));
     return makeClosure(params, code, frame);
+}
+
+Value *evalBegin(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(24);
+    assert(args->type == CONS_TYPE);
+
+    Value *cur = args;
+    while(!isNull(cdr(cur))) {
+        eval(car(cur), frame);
+        cur = cdr(cur);
+    }
+    return eval(car(cur), frame);
 }
 
 // Evaluates a + expression
@@ -516,6 +532,7 @@ Value *eval(Value *expr, Frame *frame) {
         if(!strcmp(first->s, "define")) return evalDefine(args, frame);
         if(!strcmp(first->s, "set!")) return evalSet(args, frame);
         if(!strcmp(first->s, "lambda")) return evalLambda(args, frame);
+        if(!strcmp(first->s, "begin")) return evalBegin(args, frame);
 
         else {
             Value *evaledOperator = eval(first, frame);
