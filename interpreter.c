@@ -212,6 +212,7 @@ void changeSymbol(Value *symbol, Value *value, Frame *frame) {
         while(!isNull(curBinding)) {
             if(!strcmp(symbol->s, var(car(curBinding))->s)) {
                 car(curBinding)->b.val = value;
+                return;
             }
             curBinding = cdr(curBinding);
         }
