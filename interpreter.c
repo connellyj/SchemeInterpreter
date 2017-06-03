@@ -199,6 +199,8 @@ Value *evalDefine(Value *args, Frame *frame) {
 void changeSymbol(Value *symbol, Value *value, Frame *frame) {
     display(symbol);
     printf("\n");
+    display(frame->bindings);
+    printf("\n");
     // error checking
     assert(symbol);
     assert(frame);
