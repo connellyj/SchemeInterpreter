@@ -31,6 +31,8 @@ void evalError(int errorCode) {
     else if(errorCode == 19) printf("\'cons\' requires two arguments");
     else if(errorCode == 20) printf("\'car\' requires a list as an argument");
     else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
+    else if(errorCode == 22) printf("\'zero?\' requires one argument");
+    else if(errorCode == 23) printf("\'zero\' requires a number as an argument");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -87,6 +89,79 @@ Value *evalLet(Value *args, Frame *frame) {
     return eval(expr, newFrame);
 }
 
+// Evaluates a let* expression (like let, but evaluates left to right and
+//      allows for linear dependency in the parameters)
+// Causes an evaluation error if there's not two arguments,
+//      or if the first parameter is not a list of tuples where
+//      the first value in each tuple is a valid variable name
+Value *evalLetStar(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(6);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(6);
+
+    Value *bindings = car(args);
+    Value *expr = car(cdr(args));
+    Value *curBinding;
+    Value *bindingsList = makeNull();
+    Frame *newFrame = (Frame *)talloc(sizeof(Frame));
+    newFrame->parent = frame;
+    while(!isNull(bindings)) {
+        if(bindings->type != CONS_TYPE) evalError(5);
+        curBinding = car(bindings);
+        if(curBinding->type != CONS_TYPE) evalError(5);
+        if(length(curBinding) != 2) evalError(5);
+        Value *var = car(curBinding);
+        if(var->type != SYMBOL_TYPE) evalError(2);
+        Value *val = eval(car(cdr(curBinding)), newFrame);
+        bindingsList = cons(makeBinding(var, val), bindingsList);
+        newFrame->bindings = bindingsList;
+        bindings = cdr(bindings);
+    }
+    return eval(expr, newFrame);
+}
+
+Value *evalLetRec(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(6);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(6);
+
+    Value *bindings = car(args);
+    Value *expr = car(cdr(args));
+    Value *curBinding;
+    Value *bindingsList = makeNull();
+    Value *values = makeNull();
+    while(!isNull(bindings)) {
+        if(bindings->type != CONS_TYPE) evalError(5);
+        curBinding = car(bindings);
+        if(curBinding->type != CONS_TYPE) evalError(5);
+        if(length(curBinding) != 2) evalError(5);
+        Value *var = car(curBinding);
+        if(var->type != SYMBOL_TYPE) evalError(2);
+        values = cons(car(cdr(curBinding)), values);
+        Value *val = (Value *)talloc(sizeof(Value));
+        val->type = BOOL_TYPE;
+        val->i = false;
+        bindingsList = cons(makeBinding(var, val), bindingsList);
+        bindings = cdr(bindings);
+    }
+    Frame *newFrame = (Frame *)talloc(sizeof(Frame));
+    newFrame->parent = frame;
+    newFrame->bindings = bindingsList;
+    curBinding = newFrame->bindings;
+    while(!isNull(values)) {
+        car(curBinding)->b.val = eval(car(values), newFrame);
+        curBinding = cdr(curBinding);
+        values = cdr(values);
+    }
+    return eval(expr, newFrame);
+}
+
 // Evaluates a quote expression
 // Causes an evaluation error if there's not one argument
 Value *evalQuote(Value *args) {
@@ -115,6 +190,49 @@ Value *evalDefine(Value *args, Frame *frame) {
     Value *val = eval(car(cdr(args)), frame);
     Value *binding = makeBinding(var, val);
     frame->bindings = cons(binding, frame->bindings);
+    return makeVoid();
+}
+
+// Looks up the given symbol in the given frame and its parents and changes
+//      its value to the given new value
+// Throws an evaluation if the symbol doesn't exist
+void changeSymbol(Value *symbol, Value *value, Frame *frame) {
+    display(symbol);
+    printf("\n");
+    // error checking
+    assert(symbol);
+    assert(frame);
+    assert(symbol->type == SYMBOL_TYPE);
+
+    Frame *curFrame = frame;
+    while(curFrame != NULL) {
+        Value *curBinding = curFrame->bindings;
+        while(!isNull(curBinding)) {
+            if(!strcmp(symbol->s, var(car(curBinding))->s)) {
+                car(curBinding)->b.val = value;
+            }
+            curBinding = cdr(curBinding);
+        }
+        curFrame = curFrame->parent;
+    }
+    evalError(4);
+}
+
+// Evaluates a set! expression
+// Causes an evaluation error if there's not two arguments,
+//      or if the first argument is not a valid variable name
+Value *evalSet(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(9);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(9);
+
+    Value *var = car(args);
+    if(var->type != SYMBOL_TYPE) evalError(10);
+    Value *val = eval(car(cdr(args)), frame);
+    changeSymbol(var, val, frame);
     return makeVoid();
 }
 
@@ -156,6 +274,30 @@ Value *primitiveAdd(Value *args) {
     return result;
 }
 
+// Evaluates a - expression
+// Causes an evaluation error if any of the arguments are not numbers
+Value *primitiveSubtract(Value *args) {
+    // error checking
+    assert(args);
+    assert(args->type == CONS_TYPE || isNull(args));
+
+    Value *result = (Value *)talloc(sizeof(Value));
+    result->type = DOUBLE_TYPE;
+    result->d = 0;
+    if(length(args) == 0) return result;
+    if(car(args)->type == INT_TYPE) result->d = car(args)->i;
+    else if(car(args)->type == DOUBLE_TYPE) result->d = car(args)->d;
+    else evalError(13);
+    Value *cur = cdr(args);
+    while(!isNull(cur)) {
+        if(car(cur)->type == INT_TYPE) result->d -= (car(cur))->i;
+        else if(car(cur)->type == DOUBLE_TYPE) result->d -= (car(cur))->d;
+        else evalError(13);
+        cur = cdr(cur);
+    }
+    return result;
+}
+
 // Evaluates a null? expression
 // Causes an evaluation error if there's not one argument
 Value *primitiveIsNull(Value *args) {
@@ -168,6 +310,24 @@ Value *primitiveIsNull(Value *args) {
     Value *boolVal = (Value *)talloc(sizeof(Value));
     boolVal->type = BOOL_TYPE;
     boolVal->i = isNull(car(args));
+    return boolVal;
+}
+
+// Evaluates a zero? expression
+// Causes an evaluation error if there's not one argument or if the argument
+//      isn't a number
+Value *primitiveIsZero(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(22);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 1) evalError(22);
+
+    Value *boolVal = (Value *)talloc(sizeof(Value));
+    boolVal->type = BOOL_TYPE;
+    if(car(args)->type == INT_TYPE) boolVal->i = car(args)->i == 0;
+    else if(car(args)->type == DOUBLE_TYPE) boolVal->i = car(args)->d == 0;
+    else evalError(23);
     return boolVal;
 }
 
@@ -351,8 +511,11 @@ Value *eval(Value *expr, Frame *frame) {
         // special forms
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
+        if(!strcmp(first->s, "let*")) return evalLetStar(args, frame);
+        if(!strcmp(first->s, "letrec")) return evalLetRec(args, frame);
         if(!strcmp(first->s, "quote")) return evalQuote(args);
         if(!strcmp(first->s, "define")) return evalDefine(args, frame);
+        if(!strcmp(first->s, "set!")) return evalSet(args, frame);
         if(!strcmp(first->s, "lambda")) return evalLambda(args, frame);
 
         else {
@@ -377,7 +540,9 @@ void interpret(Value *tree) {
     frame->parent = NULL;
     frame->bindings = makeNull();
     bind("+", primitiveAdd, frame);
+    bind("-", primitiveSubtract, frame);
     bind("null?", primitiveIsNull, frame);
+    bind("zero?", primitiveIsZero, frame);
     bind("car", primitiveCar, frame);
     bind("cdr", primitiveCdr, frame);
     bind("cons", primitiveCons, frame);
