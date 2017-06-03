@@ -33,7 +33,6 @@ void evalError(int errorCode) {
     else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
     else if(errorCode == 22) printf("\'zero?\' requires one argument");
     else if(errorCode == 23) printf("\'zero?\' requires a number as an argument");
-    else if(errorCode == 23) printf("\'begin\' requires at least one argument");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -253,11 +252,12 @@ Value *evalLambda(Value *args, Frame *frame) {
     return makeClosure(params, code, frame);
 }
 
+// Evaluates a begin expression
 Value *evalBegin(Value *args, Frame *frame) {
     // error checking
     assert(args);
     assert(frame);
-    if(isNull(args)) evalError(24);
+    if(isNull(args)) return makeVoid();
     assert(args->type == CONS_TYPE);
 
     Value *cur = args;
