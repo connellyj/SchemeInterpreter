@@ -283,13 +283,15 @@ Value *evalAnd(Value *args, Frame *frame) {
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(24);
     
-    Value *a1 = car(args);
-    Value *a2 = car(cdr(args));
-    if(a1->type != BOOL_TYPE || a2->type != BOOL_TYPE) evalError(25);
-    Value *ret = (Value *)talloc(sizeof(Value));
-    ret->type = BOOL_TYPE;
-    ret->i = a1->i && a2->i;
-    return ret;
+    Value *cur = args;
+    Value *cond;
+    while(!isNull(cur)) {
+        cond = eval(car(cur), frame);
+        if(cond->type != BOOL_TYPE) evalError(25);
+        if(!(cond->i)) return cond;
+        cur = cdr(cur);
+    }
+    return cond;
 }
 
 // Evaluates an or expression
@@ -303,13 +305,15 @@ Value *evalOr(Value *args, Frame *frame) {
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(26);
     
-    Value *a1 = car(args);
-    Value *a2 = car(cdr(args));
-    if(a1->type != BOOL_TYPE || a2->type != BOOL_TYPE) evalError(27);
-    Value *ret = (Value *)talloc(sizeof(Value));
-    ret->type = BOOL_TYPE;
-    ret->i = a1->i || a2->i;
-    return ret;
+    Value *cur = args;
+    Value *cond;
+    while(!isNull(cur)) {
+        cond = eval(car(cur), frame);
+        if(cond->type != BOOL_TYPE) evalError(27);
+        if(cond->i) return cond;
+        cur = cdr(cur);
+    }
+    return cond;
 }
 
 // Evaluates a + expression

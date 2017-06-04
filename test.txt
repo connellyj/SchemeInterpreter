@@ -26,12 +26,12 @@ state
                 a))))
 (b)
 "and"
-(and #t #f)
+(and (if #t #t #t) #f)
 (and #f #f)
 (and #f #t)
 (and #t #t)
 "or"
-(or #t #f)
+(or (if #t #t #t) #f)
 (or #f #f)
 (or #f #t)
 (or #t #t)
