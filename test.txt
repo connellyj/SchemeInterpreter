@@ -25,3 +25,13 @@ state
                 (set! a 3)
                 a))))
 (b)
+"and"
+(and #t #f)
+(and #f #f)
+(and #f #t)
+(and #t #t)
+"or"
+(or #t #f)
+(or #f #f)
+(or #f #t)
+(or #t #t)

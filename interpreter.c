@@ -33,6 +33,10 @@ void evalError(int errorCode) {
     else if(errorCode == 21) printf("\'cdr\' requires a list as an argument");
     else if(errorCode == 22) printf("\'zero?\' requires one argument");
     else if(errorCode == 23) printf("\'zero?\' requires a number as an argument");
+    else if(errorCode == 24) printf("\'and\' requires 2 arguments");
+    else if(errorCode == 25) printf("\'and\' requires booleans as arguments");
+    else if(errorCode == 26) printf("\'or\' requires 2 arguments");
+    else if(errorCode == 27) printf("\'or\' requires booleans as arguments");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -266,6 +270,46 @@ Value *evalBegin(Value *args, Frame *frame) {
         cur = cdr(cur);
     }
     return eval(car(cur), frame);
+}
+
+// Evaluates an and expression
+// Causes an evaluation error if there's not two arguments, 
+//      or if the arguments aren't booleans
+Value *evalAnd(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(24);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(24);
+    
+    Value *a1 = car(args);
+    Value *a2 = car(cdr(args));
+    if(a1->type != BOOL_TYPE || a2->type != BOOL_TYPE) evalError(25);
+    Value *ret = (Value *)talloc(sizeof(Value));
+    ret->type = BOOL_TYPE;
+    ret->i = a1->i && a2->i;
+    return ret;
+}
+
+// Evaluates an or expression
+// Causes an evaluation error if there's not two arguments, 
+//      or if the arguments aren't booleans
+Value *evalOr(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) evalError(26);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(26);
+    
+    Value *a1 = car(args);
+    Value *a2 = car(cdr(args));
+    if(a1->type != BOOL_TYPE || a2->type != BOOL_TYPE) evalError(27);
+    Value *ret = (Value *)talloc(sizeof(Value));
+    ret->type = BOOL_TYPE;
+    ret->i = a1->i || a2->i;
+    return ret;
 }
 
 // Evaluates a + expression
@@ -525,6 +569,8 @@ Value *eval(Value *expr, Frame *frame) {
 
         // special forms
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
+        if(!strcmp(first->s, "and")) return evalAnd(args, frame);
+        if(!strcmp(first->s, "or")) return evalOr(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
         if(!strcmp(first->s, "let*")) return evalLetStar(args, frame);
         if(!strcmp(first->s, "letrec")) return evalLetRec(args, frame);
