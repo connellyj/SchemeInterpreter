@@ -1,3 +1,4 @@
+(- 3 2 1)
 (let ((x 7) (y 3)) y)
 (let* ((x 7) (y x)) y)
 (define summ
@@ -26,6 +27,7 @@ state
                 a))))
 (b)
 
+"knuth"
 (define A
   (lambda (k x1 x2 x3 x4 x5)
     (letrec ((B
@@ -38,3 +40,37 @@ state
           (B)))))
 
 (A 10 (lambda () 1) (lambda () -1) (lambda () -1) (lambda () 1) (lambda () 0))
+
+"and"
+(and (if #t #t #t) #f)
+(and #f #f)
+(and #f #t)
+(and #t #t)
+"or"
+(or (if #t #t #t) #f)
+(or #f #f)
+(or #f #t)
+(or #t #t)
+(cond
+    (#f 2)
+    ((if #t #f #t) 3)
+    (else 7))
+(cond
+    (#f 2)
+    ((if #t #f #t) 3)
+    #t)
+(cond
+    (#f 2)
+    ((if #t #t #t) 3)
+    #t)
+(* 2 3)
+(* 1 2 3)
+(/ 5 2)
+(/ 6 3)
+(modulo 5 2)
+(< 2 4)
+(< 4 2)
+(> 2 4)
+(> 4 2)
+(= 2 4)
+(= 4 4.0)
