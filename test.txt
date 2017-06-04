@@ -35,3 +35,15 @@ state
 (or #f #f)
 (or #f #t)
 (or #t #t)
+(cond
+    (#f 2)
+    ((if #t #f #t) 3)
+    (else 7))
+(cond
+    (#f 2)
+    ((if #t #f #t) 3)
+    #t)
+(cond
+    (#f 2)
+    ((if #t #t #t) 3)
+    #t)

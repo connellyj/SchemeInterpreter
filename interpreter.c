@@ -37,6 +37,8 @@ void evalError(int errorCode) {
     else if(errorCode == 25) printf("\'and\' requires booleans as arguments");
     else if(errorCode == 26) printf("\'or\' requires 2 arguments");
     else if(errorCode == 27) printf("\'or\' requires booleans as arguments");
+    else if(errorCode == 28) printf("\'cond\' requires tuples where the first item evaluates to a boolean as arguments");
+    else if(errorCode == 29) printf("\'cond\' ");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -270,6 +272,37 @@ Value *evalBegin(Value *args, Frame *frame) {
         cur = cdr(cur);
     }
     return eval(car(cur), frame);
+}
+
+// Evaluates a cond expression
+// Causes an evaluation error if the arguments are not lists
+//      of length 2, or if the first argument of those lists
+//      is not a boolean (or else or #t for the last argument)
+Value *evalCond(Value *args, Frame *frame) {
+    // error checking
+    assert(args);
+    assert(frame);
+    if(isNull(args)) return makeVoid();
+    assert(args->type == CONS_TYPE);
+    
+    Value *cur = args;
+    Value *cond;
+    while(!isNull(cdr(cur))) {
+        if(car(cur)->type != CONS_TYPE) evalError(28);
+        if(length(car(cur)) != 2) evalError(28);
+        cond = eval(car(car(cur)), frame);
+        if(cond->type != BOOL_TYPE) evalError(28);
+        if(cond->i) return eval(car(cdr(car(cur))), frame);
+        cur = cdr(cur);
+    }
+    if(car(cur)->type == BOOL_TYPE && car(cur)->i) return car(cur);
+    if(car(cur)->type != CONS_TYPE) evalError(28);
+    if(length(car(cur)) != 2) evalError(28);
+    if(!strcmp(car(car(cur))->s, "else")) return eval(car(cdr(car(cur))), frame);
+    cond = eval(car(car(cur)), frame);
+    if(cond->type != BOOL_TYPE) evalError(28);
+    if(cond->i) return eval(car(cdr(car(cur))), frame);
+    else return makeVoid();
 }
 
 // Evaluates an and expression
@@ -573,6 +606,7 @@ Value *eval(Value *expr, Frame *frame) {
 
         // special forms
         if(!strcmp(first->s, "if")) return evalIf(args, frame);
+        if(!strcmp(first->s, "cond")) return evalCond(args, frame);
         if(!strcmp(first->s, "and")) return evalAnd(args, frame);
         if(!strcmp(first->s, "or")) return evalOr(args, frame);
         if(!strcmp(first->s, "let")) return evalLet(args, frame);
