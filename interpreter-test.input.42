@@ -1,0 +1,11 @@
+(define summ
+    (lambda (x)
+        (if (zero? x)
+            0
+            (+ x 1 (summ (- x 1))))))
+(summ 3)
+(letrec ((sum (lambda (x)
+    (if (zero? x)
+        0
+        (+ x (sum (- x 1)))))))
+(sum 5))

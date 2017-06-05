@@ -1,0 +1,15 @@
+(define state #f)
+state
+(define setter
+    (lambda ()
+        (set! state #t)))
+(setter)
+state
+
+(define b
+    (lambda ()
+        (let ((a 2))
+            (begin
+                (set! a 3)
+                a))))
+(b)

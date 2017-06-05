@@ -45,6 +45,8 @@ void evalError(int errorCode) {
     else if(errorCode == 33) printf("\'<\' requires two numerical arguments");
     else if(errorCode == 34) printf("\'>\' requires two numerical arguments");
     else if(errorCode == 35) printf("\'=\' requires two numerical arguments");
+    else if(errorCode == 36) printf("\'<=\' requires two numerical arguments");
+    else if(errorCode == 37) printf("\'>=\' requires two numerical arguments");
     else printf("Evaluation error");
     printf("\n");
     texit(errorCode);
@@ -294,7 +296,7 @@ Value *evalCond(Value *args, Frame *frame) {
     assert(frame);
     if(isNull(args)) return makeVoid();
     assert(args->type == CONS_TYPE);
-    
+
     Value *cur = args;
     Value *cond;
     while(!isNull(cdr(cur))) {
@@ -316,7 +318,7 @@ Value *evalCond(Value *args, Frame *frame) {
 }
 
 // Evaluates an and expression
-// Causes an evaluation error if there's not two arguments, 
+// Causes an evaluation error if there's not two arguments,
 //      or if the arguments aren't booleans
 Value *evalAnd(Value *args, Frame *frame) {
     // error checking
@@ -325,7 +327,7 @@ Value *evalAnd(Value *args, Frame *frame) {
     if(isNull(args)) evalError(24);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(24);
-    
+
     Value *cur = args;
     Value *cond;
     while(!isNull(cur)) {
@@ -338,7 +340,7 @@ Value *evalAnd(Value *args, Frame *frame) {
 }
 
 // Evaluates an or expression
-// Causes an evaluation error if there's not two arguments, 
+// Causes an evaluation error if there's not two arguments,
 //      or if the arguments aren't booleans
 Value *evalOr(Value *args, Frame *frame) {
     // error checking
@@ -347,7 +349,7 @@ Value *evalOr(Value *args, Frame *frame) {
     if(isNull(args)) evalError(26);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(26);
-    
+
     Value *cur = args;
     Value *cond;
     while(!isNull(cur)) {
@@ -404,7 +406,7 @@ Value *primitiveMultiply(Value *args) {
 
 // Evaluates a / expression
 // Causes an evaluation error if there aren't two arguments,
-//      if either argument is not a number, 
+//      if either argument is not a number,
 //      or if the second argument is a zero
 Value *primitiveDivide(Value *args) {
     // error checking
@@ -412,10 +414,10 @@ Value *primitiveDivide(Value *args) {
     if(isNull(args)) evalError(29);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(29);
-    
+
     Value *n1 = car(args);
     Value *n2 = car(cdr(args));
-    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) || 
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
        (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(29);
     double val1;
     double val2;
@@ -439,7 +441,7 @@ Value *primitiveModulo(Value *args) {
     if(isNull(args)) evalError(32);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(32);
-    
+
     Value *n1 = car(args);
     Value *n2 = car(cdr(args));
     if(n1->type != INT_TYPE || n2->type != INT_TYPE) evalError(32);
@@ -481,10 +483,10 @@ Value *primitiveLessThan(Value *args) {
     if(isNull(args)) evalError(33);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(33);
-    
+
     Value *n1 = car(args);
     Value *n2 = car(cdr(args));
-    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) || 
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
        (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(33);
     double val1;
     double val2;
@@ -506,10 +508,10 @@ Value *primitiveGreaterThan(Value *args) {
     if(isNull(args)) evalError(34);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(34);
-    
+
     Value *n1 = car(args);
     Value *n2 = car(cdr(args));
-    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) || 
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
        (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(34);
     double val1;
     double val2;
@@ -531,10 +533,10 @@ Value *primitiveEqualTo(Value *args) {
     if(isNull(args)) evalError(35);
     assert(args->type == CONS_TYPE);
     if(length(args) != 2) evalError(35);
-    
+
     Value *n1 = car(args);
     Value *n2 = car(cdr(args));
-    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) || 
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
        (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(35);
     double val1;
     double val2;
@@ -545,6 +547,56 @@ Value *primitiveEqualTo(Value *args) {
     Value *res = (Value *)talloc(sizeof(Value));
     res->type = BOOL_TYPE;
     res->i = val1 == val2;
+    return res;
+}
+
+// Evaluates a <= expression
+// Causes an evaluation error if there aren't two numerical arguments
+Value *primitiveLessThanOrEqualTo(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(36);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(36);
+
+    Value *n1 = car(args);
+    Value *n2 = car(cdr(args));
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
+       (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(36);
+    double val1;
+    double val2;
+    if(n1->type == DOUBLE_TYPE) val1 = n1->d;
+    else val1 = n1->i;
+    if(n2->type == DOUBLE_TYPE) val2 = n2->d;
+    else val2 = n2->i;
+    Value *res = (Value *)talloc(sizeof(Value));
+    res->type = BOOL_TYPE;
+    res->i = val1 <= val2;
+    return res;
+}
+
+// Evaluates a >= expression
+// Causes an evaluation error if there aren't two numerical arguments
+Value *primitiveGreaterThanOrEqualTo(Value *args) {
+    // error checking
+    assert(args);
+    if(isNull(args)) evalError(37);
+    assert(args->type == CONS_TYPE);
+    if(length(args) != 2) evalError(37);
+
+    Value *n1 = car(args);
+    Value *n2 = car(cdr(args));
+    if((n1->type != DOUBLE_TYPE && n1->type != INT_TYPE) ||
+       (n2->type != DOUBLE_TYPE && n2->type != INT_TYPE)) evalError(37);
+    double val1;
+    double val2;
+    if(n1->type == DOUBLE_TYPE) val1 = n1->d;
+    else val1 = n1->i;
+    if(n2->type == DOUBLE_TYPE) val2 = n2->d;
+    else val2 = n2->i;
+    Value *res = (Value *)talloc(sizeof(Value));
+    res->type = BOOL_TYPE;
+    res->i = val1 >= val2;
     return res;
 }
 
@@ -806,6 +858,8 @@ void interpret(Value *tree) {
     bind("<", primitiveLessThan, frame);
     bind(">", primitiveGreaterThan, frame);
     bind("=", primitiveEqualTo, frame);
+    bind("<=", primitiveLessThanOrEqualTo, frame);
+    bind(">=", primitiveGreaterThanOrEqualTo, frame);
 
     Value *cur = tree;
     Value *evaled;
